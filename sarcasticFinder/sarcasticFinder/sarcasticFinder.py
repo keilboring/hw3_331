@@ -3,7 +3,9 @@ import os
 import sys
 import re
 print os.getcwd()
-
+import math
+import operator
+import functools
 fo = open("training_text.txt", "r")
 x = 0
 
@@ -46,7 +48,7 @@ for words in wordList:
 #create file and create header using unique words
 if unqiueWords.count('') > 0:
     unqiueWords.remove('')
-fw = open("output.txt","w")
+fw = open("output.csv","w")
 for w in unqiueWords:
     fw.write(w + ",")
 fw.write("classlabel")
@@ -75,32 +77,83 @@ for l in reviews:
 
 
 
-##
-cnt = 0
+
+LabelCnt1 = 0
 for l in reviews:
-    key = "about"
-    label = "0"
-    if l[0] == label:
-        if(re.search(r'\b' + key + r'\b' ,l)):
-            cnt = cnt + 1
-print "number of 1's =" + str(cnt) 
+    if l[0] == "1":
+        LabelCnt1 = LabelCnt1 + 1
+print "number of sarcastic 1's =" + str(LabelCnt1) 
 
 
-input_string = "This IPOD has a lot of problems and in my opinion is NOT worth the inflated cost."
+LabelCnt0 = 0
+for l in reviews:
+    if l[0] == "0":
+        LabelCnt0 = LabelCnt0 + 1
+print "number of non-sarcastic 0's =" + str(LabelCnt0) 
 
-for u in unqiueWords:
-    cnt = 0
-    #input contains keyword
-    if(re.search(r'\b' + u + r'\b' ,input_string)):
-        for l in reviews: 
-            if l[0] == "1":
-                if(re.search(r'\b' + u + r'\b' ,l)):
-                    cnt = cnt + 1
-        print "key found=" + u + "\t\t" + str(cnt)
-   #input does not contain keyword so count # of reviews that dont have keyword
+P1 = float(LabelCnt1) / (float(LabelCnt1) + float(LabelCnt0))
+P0 = float(LabelCnt0) / (float(LabelCnt0) + float(LabelCnt1))
+
+#input_string = "just washed my sisters car, got totally soaked coz the actual hose thing came off, but i did a good job i guess."
+
+for input_string in reviews:
+
+    #Check aP(when class = 1)
+    PC1 = [float(P1)]
+    for u in unqiueWords:
+        probability = []
+        cnt = 0
+        #input contains keyword
+        if(re.search(r'\b' + u + r'\b' ,input_string)):
+            for l in reviews: 
+                if l[0] == "1":
+                    if(re.search(r'\b' + u + r'\b' ,l)):
+                        cnt = cnt + 1
+            #print "key found=" + u + "\t\t" + str(cnt)
+            probability.append((float(cnt) + 1) / (float(LabelCnt1) + float(len(unqiueWords))  ))
+            #print "prob=" + str(probability)
+       #input does not contain keyword so count # of reviews that dont have keyword
+        else:
+            for l in reviews: 
+                if l[0] == "1":
+                    if(not re.search(r'\b' + u + r'\b' ,l)):
+                        cnt = cnt + 1
+            #print "key not found=" + u + "\t\t" + str(cnt)
+            probability.append((float(cnt) + 1) / (float(LabelCnt1) + float(len(unqiueWords))  ))
+            #print "prob=" + str(probability)
+        PC1.append( functools.reduce(operator.mul,probability))
+        #print PC1
+
+    #Check aP(when class = 0)
+    PC0 = [float(P0)]
+    for u in unqiueWords:
+        cnt = 0
+        probability = []
+        #input contains keyword
+        if(re.search(r'\b' + u + r'\b' ,input_string)):
+            for l in reviews: 
+                if l[0] == "0":
+                    if(re.search(r'\b' + u + r'\b' ,l)):
+                        cnt = cnt + 1
+            #print "key found=" + u + "\t\t" + str(cnt)
+            probability.append((float(cnt) + 1) / (float(LabelCnt0) + float(len(unqiueWords))  ))
+            #print "prob=" + str(probability)
+       #input does not contain keyword so count # of reviews that dont have keyword
+        else:
+            for l in reviews: 
+                if l[0] == "0":
+                    if(not re.search(r'\b' + u + r'\b' ,l)):
+                        cnt = cnt + 1
+            #print "key not found=" + u + "\t\t" + str(cnt)
+            probability.append((float(cnt) + 1) / (float(LabelCnt0) + float(len(unqiueWords))  ))
+            #print "prob=" + str(probability)
+        PC0.append( functools.reduce(operator.mul,probability))
+        #print PC0
+
+
+    print "PC0 = " + str(functools.reduce(operator.mul,PC0))
+    print "PC1 = " + str(functools.reduce(operator.mul,PC1))
+    if( functools.reduce(operator.mul,PC0) > functools.reduce(operator.mul,PC1)):
+        print "PC0 was bigger"
     else:
-        for l in reviews: 
-            if l[0] == "1":
-                if(not re.search(r'\b' + u + r'\b' ,l)):
-                    cnt = cnt + 1
-        print "key not found=" + u + "\t\t" + str(cnt)
+        print "PC1 was bigger!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
